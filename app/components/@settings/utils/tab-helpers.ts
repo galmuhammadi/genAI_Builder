@@ -1,33 +1,93 @@
 import type { TabVisibilityConfig } from '~/components/@settings/core/types';
 import { DEFAULT_TAB_CONFIG } from '~/components/@settings/core/constants';
 
-const envTabVisibility: Record<string, string | boolean | undefined> = {
-  'features': typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_FEATURES : undefined,
-  'data': typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_DATA : undefined,
-  'cloud-providers': typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_CLOUD_PROVIDERS : undefined,
-  'local-providers': typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_LOCAL_PROVIDERS : undefined,
-  'github': typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_GITHUB : undefined,
-  'gitlab': typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_GITLAB : undefined,
-  'supabase': typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_SUPABASE : undefined,
-  'notifications': typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_NOTIFICATIONS : undefined,
-  'event-logs': typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_EVENT_LOGS : undefined,
-  'mcp': typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_MCP : undefined,
-  'project-memory': typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_PROJECT_MEMORY : undefined,
+const isBrowser = typeof window !== 'undefined';
+
+const getEnvOverride = (key, envVal, defaultValue) => {
+  if (!isBrowser) {
+    return envVal !== undefined ? String(envVal) === 'true' : defaultValue;
+  }
+
+  const stored = localStorage.getItem(key);
+
+  if (stored === null) {
+    return envVal !== undefined ? String(envVal) === 'true' : defaultValue;
+  }
+
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return defaultValue;
+  }
 };
 
 export const isTabEnabledViaEnv = (tabId: string): boolean => {
-  // Tabs that are visible by default
-  const defaultVisibleTabs = ['features', 'data', 'project-memory'];
-  const isDefaultVisible = defaultVisibleTabs.includes(tabId);
-  
-  const envVal = envTabVisibility[tabId];
-  
-  if (envVal !== undefined && envVal !== '') {
-    return envVal === 'true' || envVal === true; // Allow explicit "true" or "false" override
+  const envMap: Record<string, boolean> = {
+    features: getEnvOverride(
+      'show_tabFeatures',
+      typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_FEATURES : undefined,
+      true,
+    ),
+    data: getEnvOverride(
+      'show_tabData',
+      typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_DATA : undefined,
+      true,
+    ),
+    'cloud-providers': getEnvOverride(
+      'show_tabCloudProviders',
+      typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_CLOUD_PROVIDERS : undefined,
+      false,
+    ),
+    'local-providers': getEnvOverride(
+      'show_tabLocalProviders',
+      typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_LOCAL_PROVIDERS : undefined,
+      false,
+    ),
+    github: getEnvOverride(
+      'show_tabGithub',
+      typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_GITHUB : undefined,
+      false,
+    ),
+    gitlab: getEnvOverride(
+      'show_tabGitlab',
+      typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_GITLAB : undefined,
+      false,
+    ),
+    supabase: getEnvOverride(
+      'show_tabSupabase',
+      typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_SUPABASE : undefined,
+      false,
+    ),
+    notifications: getEnvOverride(
+      'show_tabNotifications',
+      typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_NOTIFICATIONS : undefined,
+      false,
+    ),
+    'event-logs': getEnvOverride(
+      'show_tabEventLogs',
+      typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_EVENT_LOGS : undefined,
+      false,
+    ),
+    mcp: getEnvOverride(
+      'show_tabMcp',
+      typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_MCP : undefined,
+      false,
+    ),
+    'project-memory': getEnvOverride(
+      'show_tabProjectMemory',
+      typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SHOW_TAB_PROJECT_MEMORY : undefined,
+      true,
+    ),
+  };
+
+  if (tabId in envMap) {
+    return envMap[tabId];
   }
 
-  
-  return isDefaultVisible;
+  // Default visible tabs
+  const defaultVisibleTabs = ['features', 'data', 'project-memory'];
+
+  return defaultVisibleTabs.includes(tabId);
 };
 
 export const getVisibleTabs = (
